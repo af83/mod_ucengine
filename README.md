@@ -11,9 +11,10 @@ You should't try to install it, but in case of:
 1. Checkout ejabberd-modules with subversion
 2. git clone git://github.com/AF83/mod_ucengine.git
 3. cd mod_ucengine
-4. ./build.sh
-5. copy ebin dir in ejabberd ebin dir.
-5. Add to ejabberd config with good value
+4. mkdir ebin
+5. ./build.sh
+6. copy ebin dir in ejabberd ebin dir.
+7. Add to ejabberd config with good value
    {mod_ucengine, [{host, "localhost"}, {port, 5300}, {uid, "ejabberd"}, {credential, "secret"}]}
 
 ## License
