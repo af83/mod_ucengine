@@ -66,9 +66,6 @@ start_link(Host, Port, Debug) ->
     ibrowse:start(),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Host, Port, Debug], []).
 
-init([Host, Port, Debug]) ->
-    {ok, #state{host=Host, port=Port, debug=Debug}}.
-
 %% @desc: Connect to the UCEngine server with the User ID 'uid' and the its credential.
 %% It is currently possible to use :token or :password as authentification method, default is :token
 %% @param Uid string : brick id or name
@@ -116,61 +113,12 @@ can(Uid, Object, Action, Location, Conditions) ->
 time() ->
     gen_server:call(?MODULE, {time}).
 
-decode_event({_, Event}) ->
-    case utils:get(Event,
-                   [id, datetime, from, location, type, parent, metadata],
-                   [none, none, none, <<"">>, none, <<"">>, {array, []}]) of
-        {error, Reason} ->
-            {error, Reason};
-        [Id, Datetime, From, Location, Type, Parent, {_, Metadata}] ->
-            #uce_event{id=binary_to_list(Id),
-                       datetime=Datetime,
-                       from=binary_to_list(From),
-                       location=binary_to_list(Location),
-                       type=binary_to_list(Type),
-                       parent=binary_to_list(Parent),
-                       metadata=[{binary_to_list(Key), binary_to_list(Value)} || {Key, Value} <- Metadata]}
-    end.
+%%%
+%%% gen_server callbacks
+%%%
 
-receive_events(State, Location, Type, Params, Pid) ->
-    %% We just want to flush mailbox
-    %% ibrowse send message on timeout
-    receive
-        {_Pid, {error,req_timedout}} ->
-            ok;
-        Message ->
-            io:format("event not recognized ~p", [Message])
-        after
-            0 ->
-                ok
-    end,
-
-    Resp = http_get(State, "/event/" ++ Location,
-                    Params ++ [{"uid", State#state.uid},
-                               {"sid", State#state.sid},
-                               {"type", Type},
-                               {"_async", "lp"}]),
-    NewParams = case Resp of
-                    {ok, "200", _, Array} ->
-                        io:format("jsonevent ~p", [Array]),
-                        Events = [decode_event(JSonEvent) || JSonEvent <- Array],
-                        case Events of
-                            [] ->
-                                Params;
-                            _ ->
-                                [ Pid ! {event, Event} || Event <- Events ],
-                                LastEvent = lists:last(Events),
-                                lists:keyreplace("start", 1, Params,
-                                                 {"start", integer_to_list(LastEvent#uce_event.datetime + 1)})
-                        end;
-                    {error,req_timedout} ->
-                        Params;
-                    Error ->
-                        io:format("Subscribe: error: ~p", [Error]),
-                        timer:sleep(5000),
-                        Params
-                end,
-    receive_events(State, Location, Type, NewParams, Pid).
+init([Host, Port, Debug]) ->
+    {ok, #state{host=Host, port=Port, debug=Debug}}.
 
 handle_call({connect, Uid, Credential, Method}, _From, State) ->
     Resp = http_post(State, "/presence/", [{"uid", Uid},
@@ -263,6 +211,62 @@ terminate(_Reason, _State) ->
 %% Private functions
 %%
 
+decode_event({_, Event}) ->
+    case utils:get(Event,
+                   [id, datetime, from, location, type, parent, metadata],
+                   [none, none, none, <<"">>, none, <<"">>, {array, []}]) of
+        {error, Reason} ->
+            {error, Reason};
+        [Id, Datetime, From, Location, Type, Parent, {_, Metadata}] ->
+            #uce_event{id=binary_to_list(Id),
+                       datetime=Datetime,
+                       from=binary_to_list(From),
+                       location=binary_to_list(Location),
+                       type=binary_to_list(Type),
+                       parent=binary_to_list(Parent),
+                       metadata=[{binary_to_list(Key), binary_to_list(Value)} || {Key, Value} <- Metadata]}
+    end.
+
+receive_events(State, Location, Type, Params, Pid) ->
+    %% We just want to flush mailbox
+    %% ibrowse send message on timeout
+    receive
+        {_Pid, {error,req_timedout}} ->
+            ok;
+        Message ->
+            io:format("event not recognized ~p", [Message])
+        after
+            0 ->
+                ok
+    end,
+
+    Resp = http_get(State, "/event/" ++ Location,
+                    Params ++ [{"uid", State#state.uid},
+                               {"sid", State#state.sid},
+                               {"type", Type},
+                               {"_async", "lp"}]),
+    NewParams = case Resp of
+                    {ok, "200", _, Array} ->
+                        io:format("jsonevent ~p", [Array]),
+                        Events = [decode_event(JSonEvent) || JSonEvent <- Array],
+                        case Events of
+                            [] ->
+                                Params;
+                            _ ->
+                                [ Pid ! {event, Event} || Event <- Events ],
+                                LastEvent = lists:last(Events),
+                                lists:keyreplace("start", 1, Params,
+                                                 {"start", integer_to_list(LastEvent#uce_event.datetime + 1)})
+                        end;
+                    {error,req_timedout} ->
+                        Params;
+                    Error ->
+                        io:format("Subscribe: error: ~p", [Error]),
+                        timer:sleep(5000),
+                        Params
+                end,
+    receive_events(State, Location, Type, NewParams, Pid).
+
 http_get(State, Path, Params) ->
     http_request(State, get, Path, Params).
 
@@ -304,12 +308,3 @@ url_encode(RawParams) ->
                   end,
                   RawParams),
     string:join(Params, "&").
-
-%%
-%% Tests
-%%
--ifdef(TEST).
-
--include_lib("eunit/include/eunit.hrl").
-
--endif.
