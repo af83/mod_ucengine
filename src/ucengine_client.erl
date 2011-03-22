@@ -3,20 +3,19 @@
 %%% @doc        U.C.Engine client
 %%% @end
 %%%
-%%% This file is part of erlyvideo-ucengine.
 %%%
-%%% erlyvideo is free software: you can redistribute it and/or modify
+%%% This program is free software: you can redistribute it and/or modify
 %%% it under the terms of the GNU General Public License as published by
 %%% the Free Software Foundation, either version 3 of the License, or
 %%% (at your option) any later version.
 %%%
-%%% erlyvideo is distributed in the hope that it will be useful,
+%%% This programm is distributed in the hope that it will be useful,
 %%% but WITHOUT ANY WARRANTY; without even the implied warranty of
 %%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 %%% GNU General Public License for more details.
 %%%
 %%% You should have received a copy of the GNU General Public License
-%%% along with erlyvideo.  If not, see <http://www.gnu.org/licenses/>.
+%%% along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %%%
 %%%---------------------------------------------------------------------------------------
 -module(ucengine_client).
@@ -66,7 +65,7 @@ start_link(Host, Port, Debug) ->
     ibrowse:start(),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Host, Port, Debug], []).
 
-%% @desc: Connect to the UCEngine server with the User ID 'uid' and the its credential.
+%% @desc: Connect to the U.C.Engine server with the User ID 'uid' and the its credential.
 %% It is currently possible to use :token or :password as authentification method, default is :token
 %% @param Uid string : brick id or name
 %% @param Credential string : brick password or token
