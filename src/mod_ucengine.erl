@@ -71,5 +71,5 @@ send_message(Location, Body, From) ->
     ucengine_client:publish(#uce_event{location=Location,
                                        type="chat.message.new",
                                        metadata=[{"text", Body},
-                                                 {"lang", "fr"},
+                                                 {"lang", "en"},
                                                  {"from", jlib:jid_to_string(From)}]}).
