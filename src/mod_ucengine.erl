@@ -39,13 +39,14 @@
 -export([log_packet/3]).
 
 start(Host, Opts) ->
-    UCEngineHost = gen_mod:get_opt(host, Opts),
-    Port = gen_mod:get_opt(port, Opts),
-    Uid = gen_mod:get_opt(uid, Opts),
-    Credential = gen_mod:get_opt(credential, Opts),
+    UCEHost = gen_mod:get_opt(host, Opts),
+    UCEPort = gen_mod:get_opt(port, Opts),
+    UCEUid = gen_mod:get_opt(uid, Opts),
+    UCECredential = gen_mod:get_opt(credential, Opts),
 
-    ucengine_client:start_link(UCEngineHost, Port),
-    ucengine_client:connect(Uid, Credential),
+    ucengine_client:start_link(UCEHost, UCEPort),
+    ucengine_client:connect(UCEUid, UCECredential),
+
     ejabberd_hooks:add(user_send_packet, Host, ?MODULE, log_packet, 55),
     ok.
 
@@ -57,17 +58,13 @@ log_packet(From, #jid{user=MucName} = _To, Packet = {xmlelement, "message", Attr
         "groupchat" ->
             send_message(MucName, xml:get_path_s(Packet, [{elem, "body"}, cdata]), From),
             ok;
-        _ -> %% we don't log errors
+        _ ->
             ok
     end;
 log_packet(_From, _To, _Packet) ->
     ok.
 
-%%
-%%
-%%
 send_message(Location, Body, From) ->
-    io:format("From~p~n", [jlib:jid_to_string(From)]),
     ucengine_client:publish(#uce_event{location=Location,
                                        type="chat.message.new",
                                        metadata=[{"text", Body},
