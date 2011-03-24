@@ -46,7 +46,6 @@ start(Host, Opts) ->
 
     ucengine_client:start_link(UCEHost, UCEPort),
     ucengine_client:connect(UCEUid, UCECredential),
-
     ejabberd_hooks:add(user_send_packet, Host, ?MODULE, log_packet, 55),
     ok.
 
