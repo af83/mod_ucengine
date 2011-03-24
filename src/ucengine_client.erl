@@ -27,12 +27,14 @@
 
 %% API
 -export([start_link/2, start_link/3,
-         receive_events/5,
          connect/2, connect/3,
          subscribe/3, subscribe/4,
          publish/1,
          can/4, can/5,
          time/0]).
+
+%% Internal callbacks
+-export([receive_events/5]).
 
 -include("include/ucengine.hrl").
 
@@ -110,7 +112,7 @@ can(Uid, Object, Action, Location, Conditions) ->
 %% get server time
 %%
 time() ->
-    gen_server:call(?MODULE, {time}).
+    gen_server:call(?MODULE, time).
 
 %%%
 %%% gen_server callbacks
@@ -184,7 +186,7 @@ handle_call({can, Uid, Object, Action, Location, Conditions}, _From, State) ->
             {reply, {error, Error}, State}
     end;
 
-handle_call({time}, _From, State) ->
+handle_call(time, _From, State) ->
     case http_get(State, "/time", []) of
         {ok, "200", _, Time} ->
             {reply, Time, State};
